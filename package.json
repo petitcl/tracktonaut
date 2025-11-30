@@ -1,0 +1,19 @@
+{
+  "name": "tracktonaut-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "webapp"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=webapp",
+    "build": "npm run build --workspace=webapp",
+    "start": "npm run start --workspace=webapp",
+    "lint": "npm run lint --workspace=webapp",
+    "install-all": "npm install"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
