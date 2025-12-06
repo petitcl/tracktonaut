@@ -1,4 +1,3 @@
-import { createClient as createServerClient } from '@/lib/supabase/server'
 import type { Metric, MetricEntry, TimeRange } from '@/lib/supabase/types'
 import { checkinService } from './checkin.service'
 import { metricsService } from './metrics.service'
@@ -106,7 +105,7 @@ class DashboardService {
       : null
 
     // Calculate trend (compare first half vs second half average)
-    const trend = this.calculateTrend(values, metric.direction)
+    const trend = this.calculateTrend(values)
 
     // Create data points for sparkline
     const dataPoints = this.createDataPoints(entries, metric.type, startDayId, endDayId)
@@ -199,8 +198,7 @@ class DashboardService {
    * Compares first half average to second half average
    */
   private calculateTrend(
-    values: number[],
-    direction: string
+    values: number[]
   ): 'up' | 'down' | 'stable' | null {
     if (values.length < 4) {
       return null // Not enough data for trend

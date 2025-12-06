@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
@@ -9,7 +9,7 @@ import { redirect } from 'next/navigation'
  * Clears session and redirects to login
  */
 export async function signOut() {
-  const supabase = await createClient()
+  const supabase = await createServerSupabaseClient()
 
   const { error } = await supabase.auth.signOut()
 
@@ -27,7 +27,7 @@ export async function signOut() {
  * Returns user object or null
  */
 export async function getCurrentUser() {
-  const supabase = await createClient()
+  const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
   return user
 }

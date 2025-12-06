@@ -1,5 +1,5 @@
 import { createClient as createBrowserClient } from '@/lib/supabase/client'
-import { createClient as createServerClient } from '@/lib/supabase/server'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 import type { User } from '@supabase/supabase-js'
 
 /**
@@ -43,7 +43,7 @@ class AuthService {
    * Returns null if not authenticated
    */
   async getCurrentUser(): Promise<User | null> {
-    const supabase = await createServerClient()
+    const supabase = await createServerSupabaseClient()
     const { data: { user } } = await supabase.auth.getUser()
     return user
   }

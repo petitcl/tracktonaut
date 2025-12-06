@@ -1,4 +1,4 @@
-import { createClient as createServerClient } from '@/lib/supabase/server'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { createClient as createBrowserClient } from '@/lib/supabase/client'
 import type {
   Metric,
@@ -10,6 +10,7 @@ import type {
   SelectConfig,
   TagsConfig,
 } from '@/lib/supabase/types'
+import { Json } from '@/lib/supabase/database.types'
 
 /**
  * Metrics Service
@@ -21,7 +22,7 @@ class MetricsService {
    * Sorted by order_index
    */
   async getActiveMetrics(userId: string): Promise<Metric[]> {
-    const supabase = await createServerClient()
+    const supabase = await createServerSupabaseClient()
 
     const { data, error } = await supabase
       .from('metrics')
@@ -68,7 +69,7 @@ class MetricsService {
    * Get all metrics (including archived) for current user
    */
   async getAllMetrics(userId: string): Promise<Metric[]> {
-    const supabase = await createServerClient()
+    const supabase = await createServerSupabaseClient()
 
     const { data, error } = await supabase
       .from('metrics')
@@ -88,19 +89,16 @@ class MetricsService {
    * Get single metric by ID
    */
   async getMetric(userId: string, metricId: number): Promise<Metric | null> {
-    const supabase = await createServerClient()
+    const supabase = await createServerSupabaseClient()
 
     const { data, error } = await supabase
       .from('metrics')
       .select('*')
       .eq('id', metricId)
       .eq('user_id', userId)
-      .single()
+      .maybeSingle()
 
     if (error) {
-      if (error.code === 'PGRST116') {
-        return null // Not found
-      }
       console.error('Error fetching metric:', error)
       throw new Error('Failed to fetch metric')
     }
@@ -114,9 +112,9 @@ class MetricsService {
    */
   async createMetric(userId: string, metric: MetricInsert): Promise<Metric> {
     // Validate config before inserting
-    this.validateMetricConfig(metric.type, metric.config || {})
+    this.validateMetricConfig(metric.type as MetricType, metric.config || {})
 
-    const supabase = await createServerClient()
+    const supabase = await createServerSupabaseClient()
 
     // Get current max order_index
     const { data: maxOrderData } = await supabase
@@ -125,7 +123,7 @@ class MetricsService {
       .eq('user_id', userId)
       .order('order_index', { ascending: false })
       .limit(1)
-      .single()
+      .maybeSingle()
 
     const nextOrderIndex = (maxOrderData?.order_index ?? -1) + 1
 
@@ -156,7 +154,7 @@ class MetricsService {
     metricId: number,
     updates: MetricUpdate
   ): Promise<Metric> {
-    const supabase = await createServerClient()
+    const supabase = await createServerSupabaseClient()
 
     // If type or config is being updated, validate
     if (updates.type || updates.config) {
@@ -168,7 +166,7 @@ class MetricsService {
       const finalType = updates.type || existing.type
       const finalConfig = updates.config || existing.config
 
-      this.validateMetricConfig(finalType, finalConfig as Record<string, unknown>)
+      this.validateMetricConfig(finalType as MetricType, finalConfig as Json)
     }
 
     const { data, error } = await supabase
@@ -191,7 +189,7 @@ class MetricsService {
    * Archive a metric (soft delete)
    */
   async archiveMetric(userId: string, metricId: number): Promise<void> {
-    const supabase = await createServerClient()
+    const supabase = await createServerSupabaseClient()
 
     const { error } = await supabase
       .from('metrics')
@@ -209,7 +207,7 @@ class MetricsService {
    * Unarchive a metric
    */
   async unarchiveMetric(userId: string, metricId: number): Promise<void> {
-    const supabase = await createServerClient()
+    const supabase = await createServerSupabaseClient()
 
     const { error } = await supabase
       .from('metrics')
@@ -227,7 +225,7 @@ class MetricsService {
    * Permanently delete a metric
    */
   async deleteMetric(userId: string, metricId: number): Promise<void> {
-    const supabase = await createServerClient()
+    const supabase = await createServerSupabaseClient()
 
     const { error } = await supabase
       .from('metrics')
@@ -249,7 +247,7 @@ class MetricsService {
     userId: string,
     metricIds: number[]
   ): Promise<void> {
-    const supabase = await createServerClient()
+    const supabase = await createServerSupabaseClient()
 
     // Update each metric with new order_index
     const updates = metricIds.map((id, index) =>
@@ -273,14 +271,14 @@ class MetricsService {
    * Validate metric config based on type
    * Throws error if invalid
    */
-  private validateMetricConfig(type: MetricType, config: Record<string, unknown>): void {
+  private validateMetricConfig(type: MetricType, config: Json): void {
     switch (type) {
       case 'boolean':
         // Boolean metrics have no config
         break
 
       case 'rating':
-        const ratingConfig = config as RatingConfig
+        const ratingConfig = config as unknown as RatingConfig
         if (!ratingConfig.scaleMin || !ratingConfig.scaleMax) {
           throw new Error('Rating metric requires scaleMin and scaleMax')
         }
@@ -290,7 +288,7 @@ class MetricsService {
         break
 
       case 'number':
-        const numberConfig = config as NumberConfig
+        const numberConfig = config as unknown as NumberConfig
         if (numberConfig.min !== undefined && numberConfig.max !== undefined) {
           if (numberConfig.min >= numberConfig.max) {
             throw new Error('min must be less than max')
@@ -299,7 +297,7 @@ class MetricsService {
         break
 
       case 'select':
-        const selectConfig = config as SelectConfig
+        const selectConfig = config as unknown as SelectConfig
         if (!selectConfig.options || selectConfig.options.length === 0) {
           throw new Error('Select metric requires at least one option')
         }
@@ -312,7 +310,7 @@ class MetricsService {
         break
 
       case 'tags':
-        const tagsConfig = config as TagsConfig
+        const tagsConfig = config as unknown as TagsConfig
         if (!tagsConfig.options || tagsConfig.options.length === 0) {
           throw new Error('Tags metric requires at least one option')
         }

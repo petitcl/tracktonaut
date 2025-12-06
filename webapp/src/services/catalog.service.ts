@@ -1,22 +1,12 @@
-import { createClient as createServerClient } from '@/lib/supabase/server'
 import { createClient as createBrowserClient } from '@/lib/supabase/client'
+import type { Json, Tables } from '@/lib/supabase/database.types'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 import type { Metric, MetricInsert } from '@/lib/supabase/types'
 
 /**
  * Catalog metric type (from catalog_metrics table)
  */
-export interface CatalogMetric {
-  id: number
-  name: string
-  description: string | null
-  type: string
-  emoji: string | null
-  direction: string
-  is_required: boolean
-  order_index: number
-  config: Record<string, unknown>
-  created_at: string
-}
+export type CatalogMetric = Tables<'catalog_metrics'>
 
 /**
  * Catalog Service
@@ -28,7 +18,7 @@ class CatalogService {
    * Sorted by order_index
    */
   async getCatalogMetrics(): Promise<CatalogMetric[]> {
-    const supabase = await createServerClient()
+    const supabase = await createServerSupabaseClient()
 
     const { data, error } = await supabase
       .from('catalog_metrics')
@@ -70,43 +60,48 @@ class CatalogService {
     userId: string,
     catalogMetricId: number
   ): Promise<Metric> {
-    const supabase = await createServerClient()
+    const supabase = await createServerSupabaseClient()
 
     // Get catalog metric
-    const { data: catalogMetric, error: fetchError } = await supabase
+    const catalogResult = await supabase
       .from('catalog_metrics')
       .select('*')
       .eq('id', catalogMetricId)
-      .single()
+      .maybeSingle()
 
-    if (fetchError || !catalogMetric) {
-      console.error('Error fetching catalog metric:', fetchError)
+    if (catalogResult.error || !catalogResult.data) {
+      console.error('Error fetching catalog metric:', catalogResult.error)
       throw new Error('Catalog metric not found')
     }
+
+    // Type assertion needed due to TypeScript control flow limitations
+    const catalogMetric = catalogResult.data as CatalogMetric
+    const catalogName = catalogMetric.name
 
     // Check if user already has this metric
     const { data: existing } = await supabase
       .from('metrics')
       .select('id')
       .eq('user_id', userId)
-      .eq('name', catalogMetric.name)
+      .eq('name', catalogName)
       .is('archived_at', null)
-      .single()
+      .maybeSingle()
 
     if (existing) {
       throw new Error('You already have this metric installed')
     }
 
     // Get current max order_index
-    const { data: maxOrderData } = await supabase
+    const maxOrderResult = await supabase
       .from('metrics')
       .select('order_index')
       .eq('user_id', userId)
       .order('order_index', { ascending: false })
       .limit(1)
-      .single()
+      .maybeSingle()
 
-    const nextOrderIndex = (maxOrderData?.order_index ?? -1) + 1
+    const maxOrder = maxOrderResult.data as { order_index: number } | null
+    const nextOrderIndex = (maxOrder?.order_index ?? -1) + 1
 
     // Create new metric from catalog
     const newMetric: MetricInsert = {
@@ -118,12 +113,12 @@ class CatalogService {
       direction: catalogMetric.direction as MetricInsert['direction'],
       is_required: catalogMetric.is_required,
       order_index: nextOrderIndex,
-      config: catalogMetric.config,
+      config: catalogMetric.config as Json,
     }
 
     const { data: createdMetric, error: createError } = await supabase
       .from('metrics')
-      .insert(newMetric)
+      .insert([newMetric])
       .select()
       .single()
 
@@ -162,7 +157,7 @@ class CatalogService {
    * Get catalog metrics that user hasn't installed yet
    */
   async getAvailableCatalogMetrics(userId: string): Promise<CatalogMetric[]> {
-    const supabase = await createServerClient()
+    const supabase = await createServerSupabaseClient()
 
     // Get all catalog metrics
     const { data: catalogMetrics, error: catalogError } = await supabase

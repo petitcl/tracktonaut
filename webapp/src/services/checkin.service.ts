@@ -1,13 +1,12 @@
-import { createClient as createServerClient } from '@/lib/supabase/server'
-import { createClient as createBrowserClient } from '@/lib/supabase/client'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 import type {
   DailyCheckin,
   MetricEntry,
-  MetricEntryInsert,
   CheckinStatus,
 } from '@/lib/supabase/types'
-import { formatInTimeZone, zonedTimeToUtc } from 'date-fns-tz'
+import { formatInTimeZone } from 'date-fns-tz'
 import { subDays, parseISO } from 'date-fns'
+import { Json } from '@/lib/supabase/database.types'
 
 /**
  * Day data including check-in and entries
@@ -107,19 +106,16 @@ class CheckinService {
    * Get check-in for a specific day
    */
   async getCheckin(userId: string, dayId: string): Promise<DailyCheckin | null> {
-    const supabase = await createServerClient()
+    const supabase = await createServerSupabaseClient()
 
     const { data, error } = await supabase
       .from('daily_checkin')
       .select('*')
       .eq('user_id', userId)
       .eq('day_id', dayId)
-      .single()
+      .maybeSingle()
 
     if (error) {
-      if (error.code === 'PGRST116') {
-        return null // Not found
-      }
       console.error('Error fetching check-in:', error)
       throw new Error('Failed to fetch check-in')
     }
@@ -131,7 +127,7 @@ class CheckinService {
    * Get entries for a specific day
    */
   async getEntries(userId: string, dayId: string): Promise<MetricEntry[]> {
-    const supabase = await createServerClient()
+    const supabase = await createServerSupabaseClient()
 
     const { data, error } = await supabase
       .from('metric_entry')
@@ -169,19 +165,21 @@ class CheckinService {
     status: CheckinStatus,
     entries: SaveDayEntry[]
   ): Promise<SaveDayResult> {
-    const supabase = await createServerClient()
+    const supabase = await createServerSupabaseClient()
 
     const { data, error } = await supabase.rpc('save_day', {
       p_user_id: userId,
       p_day_id: dayId,
       p_status: status,
-      p_entries: entries as unknown as Record<string, unknown>,
+      p_entries: entries as unknown as Json,
     })
 
     if (error) {
       console.error('Error saving day:', error)
       throw new Error(error.message || 'Failed to save day')
     }
+
+    console.log("saveDay", data);
 
     return data as SaveDayResult
   }
@@ -193,7 +191,7 @@ class CheckinService {
     userId: string,
     limit: number = 30
   ): Promise<DailyCheckin[]> {
-    const supabase = await createServerClient()
+    const supabase = await createServerSupabaseClient()
 
     const { data, error } = await supabase
       .from('daily_checkin')
@@ -218,7 +216,7 @@ class CheckinService {
     startDayId: string,
     endDayId: string
   ): Promise<DailyCheckin[]> {
-    const supabase = await createServerClient()
+    const supabase = await createServerSupabaseClient()
 
     const { data, error } = await supabase
       .from('daily_checkin')
@@ -244,7 +242,7 @@ class CheckinService {
     startDayId: string,
     endDayId: string
   ): Promise<MetricEntry[]> {
-    const supabase = await createServerClient()
+    const supabase = await createServerSupabaseClient()
 
     const { data, error } = await supabase
       .from('metric_entry')
@@ -271,7 +269,7 @@ class CheckinService {
     startDayId: string,
     endDayId: string
   ): Promise<MetricEntry[]> {
-    const supabase = await createServerClient()
+    const supabase = await createServerSupabaseClient()
 
     const { data, error } = await supabase
       .from('metric_entry')
@@ -294,7 +292,7 @@ class CheckinService {
    * Get completion streak (consecutive submitted days ending today/yesterday)
    */
   async getCompletionStreak(userId: string, timezone: string): Promise<number> {
-    const supabase = await createServerClient()
+    const supabase = await createServerSupabaseClient()
 
     const todayId = this.getTodayDayId(timezone)
 
