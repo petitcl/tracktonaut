@@ -1,9 +1,10 @@
 import { redirect } from 'next/navigation'
 import { authService } from '@/services/auth.service'
-import { Dashboard } from '@/components/Dashboard'
+import { CaptureInterface } from '@/components/CaptureInterface'
 import { Navigation } from '@/components/Navigation'
 
-export default async function Home() {
+export default async function CapturePage() {
+  // Check authentication
   const user = await authService.getCurrentUser()
 
   if (!user) {
@@ -14,7 +15,7 @@ export default async function Home() {
     <div className="min-h-screen bg-gray-900 text-white">
       <Navigation />
       <main>
-        <Dashboard userId={user.id} />
+        <CaptureInterface userId={user.id} />
       </main>
     </div>
   )
