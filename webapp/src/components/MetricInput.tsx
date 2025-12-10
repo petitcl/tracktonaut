@@ -57,14 +57,14 @@ function BooleanInput({ value, onChange }: MetricInputProps) {
         type="button"
         onClick={() => onChange({ bool_value: !checked })}
         className={`
-          relative w-16 h-8 rounded-full transition-colors
+          relative inline-flex items-center h-8 w-14 rounded-full transition-colors flex-shrink-0
           ${checked ? 'bg-blue-600' : 'bg-gray-600'}
         `}
       >
         <span
           className={`
-            absolute top-1 w-6 h-6 bg-white rounded-full transition-transform
-            ${checked ? 'translate-x-9' : 'translate-x-1'}
+            inline-block h-6 w-6 transform rounded-full bg-white transition-transform
+            ${checked ? 'translate-x-7' : 'translate-x-1'}
           `}
         />
       </button>

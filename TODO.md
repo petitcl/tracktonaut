@@ -8,5 +8,5 @@ Mark in progress items with [ ].
 - ✅ Merge Settings & Profile
 - [ ] Create / Edit metrics
 - [ ] Responsive Capture page
-- [ ] Fix checkbox
+- ✅ Fix checkbox
 
