@@ -13,6 +13,11 @@ interface DashboardProps {
   userId: string
 }
 
+interface NotePreview {
+  dayId: string
+  text: string
+}
+
 interface MetricStats {
   metric: Metric
   current: number | null
@@ -23,6 +28,7 @@ interface MetricStats {
   dataPoints: DataPoint[]
   completionRate: number
   tagFrequencies?: TagFrequency[]
+  notePreviews?: NotePreview[]
 }
 
 interface DashboardSummary {
@@ -129,6 +135,12 @@ export function Dashboard({ userId }: DashboardProps) {
               tagFrequencies = calculateTagFrequencies(entries, metric)
             }
 
+            // Extract note previews for notes metrics
+            let notePreviews: NotePreview[] | undefined
+            if (metric.type === 'notes') {
+              notePreviews = extractNotePreviews(entries)
+            }
+
             return {
               metric,
               current,
@@ -139,6 +151,7 @@ export function Dashboard({ userId }: DashboardProps) {
               dataPoints,
               completionRate,
               tagFrequencies,
+              notePreviews,
             }
           })
         )
@@ -259,20 +272,29 @@ export function Dashboard({ userId }: DashboardProps) {
 }
 
 function MetricCard({ stats }: { stats: MetricStats }) {
-  const { metric, current, average, trend, dataPoints, tagFrequencies } = stats
+  const router = useRouter()
+  const { metric, current, average, trend, dataPoints, tagFrequencies, notePreviews } = stats
 
   // For tags metrics, render word cloud instead of numeric visualization
   const isTagsMetric = metric.type === 'tags'
+  const isNotesMetric = metric.type === 'notes'
+
+  const handleCardClick = () => {
+    router.push(`/dashboard/metrics/${metric.id}`)
+  }
 
   return (
-    <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 hover:border-gray-600 transition-all">
+    <div
+      onClick={handleCardClick}
+      className="bg-gray-800 rounded-lg p-6 border border-gray-700 hover:border-gray-600 transition-all cursor-pointer"
+    >
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           {metric.emoji && <span className="text-2xl">{metric.emoji}</span>}
           <h3 className="font-semibold">{metric.name}</h3>
         </div>
-        {!isTagsMetric && trend && (
+        {!isTagsMetric && !isNotesMetric && trend && (
           <span className={`text-sm ${trend === 'up' ? 'text-green-500' : trend === 'down' ? 'text-red-500' : 'text-gray-500'}`}>
             {trend === 'up' ? '↑' : trend === 'down' ? '↓' : '→'}
           </span>
@@ -291,6 +313,36 @@ function MetricCard({ stats }: { stats: MetricStats }) {
             <div>
               <p className="text-gray-500">Total Tags</p>
               <p className="font-semibold">{tagFrequencies.reduce((sum, t) => sum + t.count, 0)}</p>
+            </div>
+            <div>
+              <p className="text-gray-500">Rate</p>
+              <p className="font-semibold">{Math.round(stats.completionRate)}%</p>
+            </div>
+          </div>
+        </>
+      ) : isNotesMetric && notePreviews ? (
+        <>
+          {/* Notes Preview List */}
+          {notePreviews.length === 0 ? (
+            <div className="flex items-center justify-center h-32 text-gray-500 text-sm">
+              No notes yet
+            </div>
+          ) : (
+            <div className="space-y-3 mb-4">
+              {notePreviews.map((note) => (
+                <div key={note.dayId} className="border-l-2 border-blue-500 pl-3">
+                  <p className="text-xs text-gray-500 mb-1">{note.dayId}</p>
+                  <p className="text-sm text-gray-300">{note.text}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Stats */}
+          <div className="flex justify-between text-sm">
+            <div>
+              <p className="text-gray-500">Total Notes</p>
+              <p className="font-semibold">{notePreviews.length}</p>
             </div>
             <div>
               <p className="text-gray-500">Rate</p>
@@ -468,4 +520,21 @@ function calculateTagFrequencies(
     .sort((a, b) => b.count - a.count) // Sort by count descending
 
   return frequencies
+}
+
+function extractNotePreviews(
+  entries: { day_id: string; text_value: string | null }[]
+): NotePreview[] {
+  return entries
+    .filter((entry) => {
+      const text = entry.text_value
+      // Filter out null, empty, and whitespace-only notes
+      return text !== null && text.trim() !== ''
+    })
+    .sort((a, b) => b.day_id.localeCompare(a.day_id)) // Most recent first
+    .slice(0, 5) // Take only 5 most recent
+    .map((entry) => ({
+      dayId: entry.day_id,
+      text: entry.text_value!.substring(0, 100), // Truncate to 100 chars
+    }))
 }

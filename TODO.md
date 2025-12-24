@@ -9,6 +9,6 @@ Mark in progress items with [ ].
 - [ ] Responsive Capture page
 - ✅ Better viz for tags metrics
 - [ ] Better viz for boolean metrics
-- [ ] Better viz for notes metrics
+- ✅ Better viz for notes metrics
 - [ ] Calendar viz vs timeseries viz
 
