@@ -4,6 +4,15 @@ import { metricsService } from './metrics.service'
 import { subDays, subMonths, parseISO } from 'date-fns'
 
 /**
+ * Tag frequency data for word cloud visualization
+ */
+export interface TagFrequency {
+  key: string
+  label: string
+  count: number
+}
+
+/**
  * Metric statistics for a time range
  */
 export interface MetricStats {
@@ -15,6 +24,7 @@ export interface MetricStats {
   trend: 'up' | 'down' | 'stable' | null // Trend direction
   dataPoints: DataPoint[] // For sparkline
   completionRate: number // % of days with data
+  tagFrequencies?: TagFrequency[] // For tags metrics - frequency of each tag
 }
 
 /**
@@ -114,6 +124,12 @@ class DashboardService {
     const totalDays = this.countDaysBetween(startDayId, endDayId)
     const completionRate = totalDays > 0 ? (entries.length / totalDays) * 100 : 0
 
+    // Calculate tag frequencies for tags metrics
+    let tagFrequencies: TagFrequency[] | undefined
+    if (metric.type === 'tags') {
+      tagFrequencies = this.calculateTagFrequencies(entries, metric)
+    }
+
     return {
       metric,
       current,
@@ -123,6 +139,7 @@ class DashboardService {
       trend,
       dataPoints,
       completionRate,
+      tagFrequencies,
     }
   }
 
@@ -268,6 +285,45 @@ class DashboardService {
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
 
     return diffDays + 1 // Inclusive
+  }
+
+  /**
+   * Calculate tag frequencies for tags metrics
+   * Returns sorted array of tags with their frequency counts
+   */
+  private calculateTagFrequencies(entries: MetricEntry[], metric: Metric): TagFrequency[] {
+    // Get tag options from config
+    const config = metric.config as { options?: Array<{ key: string; label: string }> }
+    const tagOptions = config?.options || []
+
+    // Count occurrences of each tag
+    const frequencyMap = new Map<string, number>()
+
+    // Initialize all tags with 0
+    tagOptions.forEach((option) => {
+      frequencyMap.set(option.key, 0)
+    })
+
+    // Count tag occurrences across all entries
+    entries.forEach((entry) => {
+      const tagKeys = entry.tag_keys || []
+      tagKeys.forEach((key) => {
+        const currentCount = frequencyMap.get(key) || 0
+        frequencyMap.set(key, currentCount + 1)
+      })
+    })
+
+    // Convert to array and include labels, filter out zero counts
+    const frequencies: TagFrequency[] = tagOptions
+      .map((option) => ({
+        key: option.key,
+        label: option.label,
+        count: frequencyMap.get(option.key) || 0,
+      }))
+      .filter((freq) => freq.count > 0) // Only include tags that were actually used
+      .sort((a, b) => b.count - a.count) // Sort by count descending
+
+    return frequencies
   }
 
   /**

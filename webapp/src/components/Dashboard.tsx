@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { Metric, TimeRange } from '@/lib/supabase/types'
-import type { DataPoint } from '@/services/dashboard.service'
+import type { DataPoint, TagFrequency } from '@/services/dashboard.service'
 import { formatInTimeZone } from 'date-fns-tz'
 import { subDays, subMonths } from 'date-fns'
+import { WordCloud } from './WordCloud'
 
 interface DashboardProps {
   userId: string
@@ -21,6 +22,7 @@ interface MetricStats {
   trend: 'up' | 'down' | 'stable' | null
   dataPoints: DataPoint[]
   completionRate: number
+  tagFrequencies?: TagFrequency[]
 }
 
 interface DashboardSummary {
@@ -121,6 +123,12 @@ export function Dashboard({ userId }: DashboardProps) {
             const totalDays = countDaysBetween(startDayId, endDayId)
             const completionRate = totalDays > 0 ? (entries.length / totalDays) * 100 : 0
 
+            // Calculate tag frequencies for tags metrics
+            let tagFrequencies: TagFrequency[] | undefined
+            if (metric.type === 'tags') {
+              tagFrequencies = calculateTagFrequencies(entries, metric)
+            }
+
             return {
               metric,
               current,
@@ -130,6 +138,7 @@ export function Dashboard({ userId }: DashboardProps) {
               trend,
               dataPoints,
               completionRate,
+              tagFrequencies,
             }
           })
         )
@@ -250,7 +259,10 @@ export function Dashboard({ userId }: DashboardProps) {
 }
 
 function MetricCard({ stats }: { stats: MetricStats }) {
-  const { metric, current, average, trend, dataPoints } = stats
+  const { metric, current, average, trend, dataPoints, tagFrequencies } = stats
+
+  // For tags metrics, render word cloud instead of numeric visualization
+  const isTagsMetric = metric.type === 'tags'
 
   return (
     <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 hover:border-gray-600 transition-all">
@@ -260,35 +272,58 @@ function MetricCard({ stats }: { stats: MetricStats }) {
           {metric.emoji && <span className="text-2xl">{metric.emoji}</span>}
           <h3 className="font-semibold">{metric.name}</h3>
         </div>
-        {trend && (
+        {!isTagsMetric && trend && (
           <span className={`text-sm ${trend === 'up' ? 'text-green-500' : trend === 'down' ? 'text-red-500' : 'text-gray-500'}`}>
             {trend === 'up' ? '↑' : trend === 'down' ? '↓' : '→'}
           </span>
         )}
       </div>
 
-      {/* Current Value */}
-      <div className="mb-4">
-        <p className="text-sm text-gray-400">Current</p>
-        <p className="text-3xl font-bold">{current !== null ? current.toFixed(1) : '—'}</p>
-      </div>
+      {isTagsMetric && tagFrequencies ? (
+        <>
+          {/* Word Cloud for Tags Metrics */}
+          <div className="mb-4">
+            <WordCloud tagFrequencies={tagFrequencies} />
+          </div>
 
-      {/* Mini Sparkline */}
-      <div className="h-16 mb-4">
-        <Sparkline dataPoints={dataPoints} />
-      </div>
+          {/* Stats */}
+          <div className="flex justify-between text-sm">
+            <div>
+              <p className="text-gray-500">Total Tags</p>
+              <p className="font-semibold">{tagFrequencies.reduce((sum, t) => sum + t.count, 0)}</p>
+            </div>
+            <div>
+              <p className="text-gray-500">Rate</p>
+              <p className="font-semibold">{Math.round(stats.completionRate)}%</p>
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Current Value */}
+          <div className="mb-4">
+            <p className="text-sm text-gray-400">Current</p>
+            <p className="text-3xl font-bold">{current !== null ? current.toFixed(1) : '—'}</p>
+          </div>
 
-      {/* Stats */}
-      <div className="flex justify-between text-sm">
-        <div>
-          <p className="text-gray-500">Avg</p>
-          <p className="font-semibold">{average !== null ? average.toFixed(1) : '—'}</p>
-        </div>
-        <div>
-          <p className="text-gray-500">Rate</p>
-          <p className="font-semibold">{Math.round(stats.completionRate)}%</p>
-        </div>
-      </div>
+          {/* Mini Sparkline */}
+          <div className="h-16 mb-4">
+            <Sparkline dataPoints={dataPoints} />
+          </div>
+
+          {/* Stats */}
+          <div className="flex justify-between text-sm">
+            <div>
+              <p className="text-gray-500">Avg</p>
+              <p className="font-semibold">{average !== null ? average.toFixed(1) : '—'}</p>
+            </div>
+            <div>
+              <p className="text-gray-500">Rate</p>
+              <p className="font-semibold">{Math.round(stats.completionRate)}%</p>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -395,4 +430,42 @@ function countDaysBetween(startDayId: string, endDayId: string): number {
   const diffTime = end.getTime() - start.getTime()
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
   return diffDays + 1
+}
+
+function calculateTagFrequencies(
+  entries: { tag_keys: string[] | null }[],
+  metric: Metric
+): TagFrequency[] {
+  // Get tag options from config
+  const config = metric.config as { options?: Array<{ key: string; label: string }> }
+  const tagOptions = config?.options || []
+
+  // Count occurrences of each tag
+  const frequencyMap = new Map<string, number>()
+
+  // Initialize all tags with 0
+  tagOptions.forEach((option) => {
+    frequencyMap.set(option.key, 0)
+  })
+
+  // Count tag occurrences across all entries
+  entries.forEach((entry) => {
+    const tagKeys = entry.tag_keys || []
+    tagKeys.forEach((key) => {
+      const currentCount = frequencyMap.get(key) || 0
+      frequencyMap.set(key, currentCount + 1)
+    })
+  })
+
+  // Convert to array and include labels, filter out zero counts
+  const frequencies: TagFrequency[] = tagOptions
+    .map((option) => ({
+      key: option.key,
+      label: option.label,
+      count: frequencyMap.get(option.key) || 0,
+    }))
+    .filter((freq) => freq.count > 0) // Only include tags that were actually used
+    .sort((a, b) => b.count - a.count) // Sort by count descending
+
+  return frequencies
 }
