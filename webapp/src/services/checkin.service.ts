@@ -181,7 +181,7 @@ class CheckinService {
 
     console.log("saveDay", data);
 
-    return data as SaveDayResult
+    return data as unknown as SaveDayResult
   }
 
   /**

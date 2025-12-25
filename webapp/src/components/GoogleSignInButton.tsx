@@ -8,7 +8,8 @@ export function GoogleSignInButton() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const searchParams = useSearchParams()
-  const next = searchParams.get('next') || '/'
+  // const next = searchParams.get('next') || '/'
+  // TODO: reinstate next handling 
 
   const handleSignIn = async () => {
     setIsLoading(true)
