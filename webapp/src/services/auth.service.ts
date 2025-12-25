@@ -7,26 +7,6 @@ import type { User } from '@supabase/supabase-js'
  * Handles authentication operations (sign in, sign out, user state)
  */
 class AuthService {
-  /**
-   * Sign in with Google OAuth
-   * Client-side only
-   */
-  async signInWithGoogle(redirectTo?: string): Promise<{ error: Error | null }> {
-    const supabase = createBrowserClient()
-
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: redirectTo || `${window.location.origin}/auth/callback`,
-      },
-    })
-
-    if (error) {
-      return { error }
-    }
-
-    return { error: null }
-  }
 
   /**
    * Sign out
