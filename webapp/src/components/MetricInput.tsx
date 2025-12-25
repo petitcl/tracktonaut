@@ -76,10 +76,37 @@ function BooleanInput({ value, onChange }: MetricInputProps) {
 function RatingInput({ value, onChange, config }: MetricInputProps & { config: Record<string, unknown> }) {
   const scaleMin = (config.scaleMin as number) || 1
   const scaleMax = (config.scaleMax as number) || 10
+  const labels = config.labels as string[] | undefined
   const selected = value.int_value
 
   const ratings = Array.from({ length: scaleMax - scaleMin + 1 }, (_, i) => scaleMin + i)
 
+  // If labels exist, use vertical layout with labels; otherwise use compact numeric grid
+  if (labels && labels.length === ratings.length) {
+    return (
+      <div className="flex flex-col gap-2">
+        {ratings.map((rating, index) => (
+          <button
+            key={rating}
+            type="button"
+            onClick={() => onChange({ int_value: rating })}
+            className={`
+              px-4 py-3 rounded-lg text-left transition-all
+              ${
+                selected === rating
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }
+            `}
+          >
+            {labels[index]}
+          </button>
+        ))}
+      </div>
+    )
+  }
+
+  // Default numeric display
   return (
     <div className="flex flex-wrap gap-2">
       {ratings.map((rating) => (

@@ -6,9 +6,9 @@ import { checkinService } from '@/services/checkin.service'
 import { Navigation } from '@/components/Navigation'
 
 interface PageProps {
-  params: {
+  params: Promise<{
     metric_id: string
-  }
+  }>
 }
 
 export default async function MetricDetailPage({ params }: PageProps) {
@@ -18,7 +18,8 @@ export default async function MetricDetailPage({ params }: PageProps) {
     redirect('/login')
   }
 
-  const metricId = parseInt(params.metric_id, 10)
+  const { metric_id } = await params
+  const metricId = parseInt(metric_id, 10)
 
   if (isNaN(metricId)) {
     redirect('/')

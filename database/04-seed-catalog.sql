@@ -135,22 +135,19 @@ VALUES
     }'::JSONB
   ),
 
-  -- 7. Food Quality (select: poor/average/good/excellent)
+  -- 7. Food Quality (rating 1-4 with labels)
   (
     'Food Quality',
     'How healthy was your food today?',
-    'select',
+    'rating',
     '🥗',
     'positive',
     true,
     7,
     '{
-      "options": [
-        {"key": "poor", "label": "Poor", "order": 0},
-        {"key": "average", "label": "Average", "order": 1},
-        {"key": "good", "label": "Good", "order": 2},
-        {"key": "excellent", "label": "Excellent", "order": 3}
-      ]
+      "scaleMin": 1,
+      "scaleMax": 4,
+      "labels": ["Poor", "Average", "Good", "Excellent"]
     }'::JSONB
   ),
 
@@ -224,7 +221,7 @@ BEGIN
   RAISE NOTICE '  4. Stress (rating 1-10) 😫';
   RAISE NOTICE '  5. Sleep Quality (rating 1-10) 😴';
   RAISE NOTICE '  6. Sleep Hours (number) 🛌';
-  RAISE NOTICE '  7. Food Quality (select) 🥗';
+  RAISE NOTICE '  7. Food Quality (rating 1-4) 🥗';
   RAISE NOTICE '  8. Exercise (boolean) 🏃';
   RAISE NOTICE '  9. Alcohol (boolean) 🍺';
   RAISE NOTICE ' 10. Social (rating 1-10) 👥';

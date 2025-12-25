@@ -40,6 +40,7 @@ export type CheckinStatus = 'draft' | 'submitted'
 export interface RatingConfig {
   scaleMin: number
   scaleMax: number
+  labels?: string[] // Optional labels for each rating value
 }
 
 export interface NumberConfig {
