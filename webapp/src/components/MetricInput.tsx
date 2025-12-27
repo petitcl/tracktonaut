@@ -49,26 +49,38 @@ export function MetricInput({ metric, value, onChange }: MetricInputProps) {
 }
 
 function BooleanInput({ value, onChange }: MetricInputProps) {
-  const checked = value.bool_value ?? false
+  const selected = value.bool_value
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex gap-3">
       <button
         type="button"
-        onClick={() => onChange({ bool_value: !checked })}
+        onClick={() => onChange({ bool_value: true })}
         className={`
-          relative inline-flex items-center h-8 w-14 rounded-full transition-colors flex-shrink-0
-          ${checked ? 'bg-blue-600' : 'bg-gray-600'}
+          flex-1 px-6 py-3 rounded-lg font-semibold transition-all
+          ${
+            selected === true
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+          }
         `}
       >
-        <span
-          className={`
-            inline-block h-6 w-6 transform rounded-full bg-white transition-transform
-            ${checked ? 'translate-x-7' : 'translate-x-1'}
-          `}
-        />
+        Yes
       </button>
-      <span className="text-gray-300">{checked ? 'Yes' : 'No'}</span>
+      <button
+        type="button"
+        onClick={() => onChange({ bool_value: false })}
+        className={`
+          flex-1 px-6 py-3 rounded-lg font-semibold transition-all
+          ${
+            selected === false
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+          }
+        `}
+      >
+        No
+      </button>
     </div>
   )
 }
