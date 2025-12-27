@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "gen-types:typescript": "npx supabase gen types typescript --project-id $SUPABASE_PROJECT_ID > src/lib/supabase/database.types.ts",
+    "gen-types:typescript": "npx dotenv-cli -e .env.local -- sh -c 'npx supabase gen types typescript --project-id \"$SUPABASE_PROJECT_ID\" > src/lib/supabase/database.types.ts'",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
