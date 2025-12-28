@@ -9,7 +9,7 @@ Execute these files **in order** in the Supabase SQL Editor:
 1. **01-schema.sql** - Create all tables and indexes
 2. **02-rls.sql** - Enable Row-Level Security and create policies
 3. **03-rpc-save-day.sql** - Create the `save_day` RPC function
-4. **04-seed-catalog.sql** - Populate seed catalog metrics
+4. **04-seed-catalog.sql** - Populate seed catalog metrics (includes 20 Mood Words emotions)
 
 ## Quick Start
 

@@ -57,7 +57,7 @@ VALUES
     '{"scaleMin": 1, "scaleMax": 10}'::JSONB
   ),
 
-  -- 2. Mood Words (tags, positive)
+  -- 2. Mood Words (tags, positive) - 20 emotions covering the mood meter
   (
     'Mood Words',
     'What emotions did you experience?',
@@ -77,7 +77,17 @@ VALUES
         {"key": "angry", "label": "😠 Angry"},
         {"key": "tired", "label": "😴 Tired"},
         {"key": "energized", "label": "⚡ Energized"},
-        {"key": "stressed", "label": "😫 Stressed"}
+        {"key": "stressed", "label": "😫 Stressed"},
+        {"key": "frustrated", "label": "😤 Frustrated"},
+        {"key": "worried", "label": "😟 Worried"},
+        {"key": "content", "label": "🙂 Content"},
+        {"key": "lonely", "label": "😔 Lonely"},
+        {"key": "hopeful", "label": "🌟 Hopeful"},
+        {"key": "overwhelmed", "label": "😵 Overwhelmed"},
+        {"key": "peaceful", "label": "☮️ Peaceful"},
+        {"key": "disappointed", "label": "😞 Disappointed"},
+        {"key": "bored", "label": "😑 Bored"},
+        {"key": "motivated", "label": "💪 Motivated"}
       ]
     }'::JSONB
   ),
@@ -216,7 +226,7 @@ BEGIN
   RAISE NOTICE '';
   RAISE NOTICE 'Catalog metrics:';
   RAISE NOTICE '  1. Mood (rating 1-10) 😊';
-  RAISE NOTICE '  2. Mood Words (tags) 💭';
+  RAISE NOTICE '  2. Mood Words (tags, 20 emotions) 💭';
   RAISE NOTICE '  3. Energy (rating 1-10) ⚡';
   RAISE NOTICE '  4. Stress (rating 1-10) 😫';
   RAISE NOTICE '  5. Sleep Quality (rating 1-10) 😴';
